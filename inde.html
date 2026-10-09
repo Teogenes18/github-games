@@ -15,6 +15,25 @@
     #score    { color: blue; font-weight: bold; vertical-align: middle; }
     #rows     { color: blue; font-weight: bold; vertical-align: middle; }
     #stats    { position: absolute; bottom: 0em; right: 1em; }
+    #court    { display: inline-block; vertical-align: top; position: relative; }
+    #court #canvas { display: block; }
+    .overlay  { position: absolute; top: 0; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 0.5em;
+                display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: auto;
+                background-color: rgba(0, 0, 0, 0.8); color: white; text-align: center; border-radius: 2px; }
+    .overlay.hidden  { display: none; }
+    .overlay h1      { font-size: 1.1em; margin: 0 0 0.4em 0; letter-spacing: 0.05em; }
+    .overlay h2      { font-size: 0.9em; margin: 0 0 0.4em 0; }
+    .overlay p       { font-size: 0.6em; margin: 0.3em 0; }
+    .overlay .result { font-size: 0.7em; }
+    .overlay .result strong { color: #7CF; }
+    .overlay .hint   { color: #CCC; }
+    .overlay button  { font: inherit; font-size: 0.7em; font-weight: bold; margin: 0.5em 0; padding: 0.3em 1em; cursor: pointer;
+                       border: 2px solid white; border-radius: 6px; background-color: #36C; color: white; }
+    .overlay button:hover, .overlay button:focus { background-color: #47E; }
+    .controls        { font-size: 0.5em; margin: 0.3em 0; padding: 0; list-style: none; text-align: left; }
+    .controls li     { margin: 0.2em 0; white-space: nowrap; }
+    .controls kbd    { display: inline-block; min-width: 1.2em; padding: 0 0.25em; margin-right: 0.1em; text-align: center;
+                       font-family: inherit; border: 1px solid #AAA; border-radius: 3px; background-color: #333; }
     @media screen and (min-width:   0px) and (min-height:   0px)  { #tetris { font-size: 0.75em; width: 250px; } #menu { width: 100px; height: 200px; } #upcoming { width:  50px; height:  50px; } #canvas { width: 100px; height: 200px; } } /* 10px chunks */
     @media screen and (min-width: 400px) and (min-height: 400px)  { #tetris { font-size: 1.00em; width: 350px; } #menu { width: 150px; height: 300px; } #upcoming { width:  75px; height:  75px; } #canvas { width: 150px; height: 300px; } } /* 15px chunks */
     @media screen and (min-width: 500px) and (min-height: 500px)  { #tetris { font-size: 1.25em; width: 450px; } #menu { width: 200px; height: 400px; } #upcoming { width: 100px; height: 100px; } #canvas { width: 200px; height: 400px; } } /* 20px chunks */
