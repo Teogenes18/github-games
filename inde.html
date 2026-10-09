@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Javascript Tetris</title>
   <style>
     body      { font-family: Helvetica, sans-serif; }
@@ -28,14 +29,36 @@
 
   <div id="tetris">
     <div id="menu">
-      <p id="start"><a href="javascript:play();">Press Space to Play.</a></p>
       <p><canvas id="upcoming"></canvas></p>
       <p>score <span id="score">00000</span></p>
       <p>rows <span id="rows">0</span></p>
     </div>
-    <canvas id="canvas">
-      Sorry, this example cannot be run because your browser does not support the &lt;canvas&gt; element
-    </canvas>
+    <div id="court">
+      <canvas id="canvas">
+        Sorry, this example cannot be run because your browser does not support the &lt;canvas&gt; element
+      </canvas>
+
+      <div id="start-screen" class="overlay">
+        <h1>TETRIS</h1>
+        <ul class="controls"></ul>
+        <button type="button" id="play-button">Jogar</button>
+        <p class="hint">Pressione Enter para jogar</p>
+      </div>
+
+      <div id="pause-screen" class="overlay hidden">
+        <h2>Pausado</h2>
+        <ul class="controls"></ul>
+        <p class="hint">Pressione Espaço para continuar</p>
+      </div>
+
+      <div id="gameover-screen" class="overlay hidden">
+        <h2>Game Over</h2>
+        <p class="result">Pontuação final: <strong id="final-score">0</strong></p>
+        <p class="result">Linhas completadas: <strong id="final-rows">0</strong></p>
+        <button type="button" id="replay-button">Jogar novamente</button>
+        <p class="hint">Pressione Enter para jogar novamente</p>
+      </div>
+    </div>
   </div>
 
   <script src="stats.js"></script>
@@ -68,7 +91,15 @@
     // game constants
     //-------------------------------------------------------------------------
 
-    var KEY     = { ESC: 27, SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 },
+    var KEY     = { ENTER: 13, ESC: 27, SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 },
+        CONTROLS = [ // displayed on the start and pause screens
+          { keys: ['←'],      action: 'mover para a esquerda' },
+          { keys: ['→'],      action: 'mover para a direita'  },
+          { keys: ['↑'],      action: 'girar a peça'          },
+          { keys: ['↓'],      action: 'descer mais rápido'    },
+          { keys: ['Espaço'], action: 'pausar / continuar'    },
+          { keys: ['ESC'],    action: 'encerrar a partida'    }
+        ],
         DIR     = { UP: 0, RIGHT: 1, DOWN: 2, LEFT: 3, MIN: 0, MAX: 3 },
         stats   = new Stats(),
         canvas  = get('canvas'),
@@ -173,8 +204,9 @@
 
     function run() {
 
-      showStats(); // initialize FPS counter
-      addEvents(); // attach keydown and resize events
+      showStats();    // initialize FPS counter
+      showControls(); // fill the controls list on the start and pause screens
+      addEvents();    // attach keydown, resize and button events
 
       var last = now = timestamp();
       function frame() {
@@ -200,6 +232,17 @@
     function addEvents() {
       document.addEventListener('keydown', keydown, false);
       window.addEventListener('resize', resize, false);
+      get('play-button').addEventListener('click', play, false);
+      get('replay-button').addEventListener('click', play, false);
+    }
+
+    function showControls() {
+      var items = CONTROLS.map(function(control) {
+        return '<li>' + control.keys.map(function(key) { return '<kbd>' + key + '</kbd>'; }).join(' ') + ' ' + control.action + '</li>';
+      }).join('');
+      var lists = document.querySelectorAll('.controls');
+      for (var n = 0 ; n < lists.length ; n++)
+        lists[n].innerHTML = items;
     }
 
     function resize(event) {
@@ -225,14 +268,15 @@
           case KEY.SPACE:  pause();                 handled = true; break;
         }
       }
-      else if (ev.keyCode == KEY.SPACE) {
-        if(paused) {
-            restart();
-            handled = true;
-          }else{
-            play();
-            handled = true;
-          }
+      else if (paused) {
+        switch(ev.keyCode) {
+          case KEY.SPACE: case KEY.ENTER: resume(); handled = true; break;
+          case KEY.ESC:                   lose();   handled = true; break;
+        }
+      }
+      else if (ev.keyCode == KEY.ENTER || ev.keyCode == KEY.SPACE) { // start or game over screen
+        play();
+        handled = true;
       }
       if (handled)
         ev.preventDefault(); // prevent arrow keys from scrolling the page (supported in IE9+ and all other browsers)
@@ -242,10 +286,27 @@
     // GAME LOGIC
     //-------------------------------------------------------------------------
 
-    function play() { hide('start'); reset();      paused = false;  playing = true;  }
-    function pause() {show('start'); paused = true; playing = false;}
-    function restart() {hide('start'); paused = false; playing = true;}
-    function lose() { show('start'); setVisualScore(); playing = false; }
+    var SCREENS = ['start-screen', 'pause-screen', 'gameover-screen'];
+
+    function showScreen(id) { // show a single overlay screen over the court, or none when id is null
+      SCREENS.forEach(function(screen) {
+        get(screen).classList.toggle('hidden', screen !== id);
+      });
+      if (!id && document.activeElement && document.activeElement.blur)
+        document.activeElement.blur(); // keep a clicked button from catching the gameplay keys
+    }
+
+    function play()   { showScreen(null); reset(); paused = false; playing = true; }
+    function pause()  { showScreen('pause-screen'); paused = true;  playing = false; }
+    function resume() { showScreen(null);           paused = false; playing = true;  }
+    function lose() {
+      playing = false;
+      paused  = false;
+      setVisualScore();
+      html('final-score', score);
+      html('final-rows',  rows);
+      showScreen('gameover-screen');
+    }
 
     function setVisualScore(n)      { vscore = n || score; invalidateScore(); }
     function setScore(n)            { score = n; setVisualScore(n);  }
