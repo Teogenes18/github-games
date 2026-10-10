@@ -110,15 +110,28 @@
     // game constants
     //-------------------------------------------------------------------------
 
-    var KEY     = { ENTER: 13, ESC: 27, SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 },
-        CONTROLS = [ // displayed on the start and pause screens
-          { keys: ['←'],      action: 'mover para a esquerda' },
-          { keys: ['→'],      action: 'mover para a direita'  },
-          { keys: ['↑'],      action: 'girar a peça'          },
-          { keys: ['↓'],      action: 'descer mais rápido'    },
-          { keys: ['Espaço'], action: 'pausar / continuar'    },
-          { keys: ['ESC'],    action: 'encerrar a partida'    }
+    var KEY = {
+      ENTER: 13,
+      ESC: 27,
+      SPACE: 32,
+      LEFT: 37,
+      UP: 38,
+      RIGHT: 39,
+      DOWN: 40,
+      A: 65,
+      D: 68,
+      W: 87,
+      S: 83
+    },
+        CONTROLS = [
+          { keys: ['←', 'A'], action: 'mover para a esquerda' },
+          { keys: ['→', 'D'], action: 'mover para a direita' },
+          { keys: ['↑', 'W'], action: 'girar a peça' },
+          { keys: ['↓', 'S'], action: 'descer mais rápido' },
+          { keys: ['Espaço'], action: 'pausar / continuar' },
+          { keys: ['ESC'], action: 'encerrar a partida' }
         ],
+        
         DIR     = { UP: 0, RIGHT: 1, DOWN: 2, LEFT: 3, MIN: 0, MAX: 3 },
         stats   = new Stats(),
         canvas  = get('canvas'),
@@ -279,12 +292,31 @@
       var handled = false;
       if (playing) {
         switch(ev.keyCode) {
-          case KEY.LEFT:   actions.push(DIR.LEFT);  handled = true; break;
-          case KEY.RIGHT:  actions.push(DIR.RIGHT); handled = true; break;
-          case KEY.UP:     actions.push(DIR.UP);    handled = true; break;
-          case KEY.DOWN:   actions.push(DIR.DOWN);  handled = true; break;
           case KEY.ESC:    lose();                  handled = true; break;
           case KEY.SPACE:  pause();                 handled = true; break;
+          case KEY.LEFT:
+          case KEY.A:
+            actions.push(DIR.LEFT);
+            handled = true;
+            break;
+
+          case KEY.RIGHT:
+          case KEY.D:
+            actions.push(DIR.RIGHT);
+            handled = true;
+            break;
+
+          case KEY.UP:
+          case KEY.W:
+            actions.push(DIR.UP);
+            handled = true;
+            break;
+
+          case KEY.DOWN:
+          case KEY.S:
+            actions.push(DIR.DOWN);
+            handled = true;
+            break;
         }
       }
       else if (paused) {
