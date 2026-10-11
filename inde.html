@@ -110,14 +110,15 @@
     // game constants
     //-------------------------------------------------------------------------
 
-    var KEY     = { ENTER: 13, ESC: 27, SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 },
+    var KEY     = { ENTER: 13, ESC: 27, SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, G: 71 },
         CONTROLS = [ // displayed on the start and pause screens
           { keys: ['←'],      action: 'mover para a esquerda' },
           { keys: ['→'],      action: 'mover para a direita'  },
           { keys: ['↑'],      action: 'girar a peça'          },
           { keys: ['↓'],      action: 'descer mais rápido'    },
           { keys: ['Espaço'], action: 'pausar / continuar'    },
-          { keys: ['ESC'],    action: 'encerrar a partida'    }
+          { keys: ['ESC'],    action: 'encerrar a partida'    },
+          { keys: ['G'],      action: 'ligar / desligar sombra' }
         ],
         DIR     = { UP: 0, RIGHT: 1, DOWN: 2, LEFT: 3, MIN: 0, MAX: 3 },
         stats   = new Stats(),
@@ -285,6 +286,7 @@
           case KEY.DOWN:   actions.push(DIR.DOWN);  handled = true; break;
           case KEY.ESC:    lose();                  handled = true; break;
           case KEY.SPACE:  pause();                 handled = true; break;
+          case KEY.G:      toggleGhost();           handled = true; break;
         }
       }
       else if (paused) {
@@ -326,6 +328,10 @@
       html('final-rows',  rows);
       showScreen('gameover-screen');
     }
+
+    var ghost = true; // true|false - show where the current piece will land (toggled with G)
+
+    function toggleGhost() { ghost = !ghost; invalidate(); }
 
     function setVisualScore(n)      { vscore = n || score; invalidateScore(); }
     function setScore(n)            { score = n; setVisualScore(n);  }
@@ -480,7 +486,8 @@
       if (invalid.court) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (playing) {
-          drawGhost(); 
+          if (ghost)
+            drawGhost();
           drawPiece(ctx, current.type, current.x, current.y, current.dir);
         }
         var x, y, block;
