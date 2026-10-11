@@ -363,7 +363,23 @@
     function changeMode()        { showScreen('start-screen'); }
 
     function clearTimer()     { elapsed = 0; invalidateTimer(); }
-    function updateTimer(idt) { setElapsed(elapsed + idt); }
+
+    function updateTimer(idt) {
+      setElapsed(elapsed + idt);
+      if (mode == 'contra-tempo')
+        updateStep(); // a velocidade depende do tempo restante
+    }
+
+    function updateStep() { // quanto tempo a peça leva para descer 1 linha (segundos)
+      var base = Math.max(speed.min, speed.start - (speed.decrement*rows)); // mesma fórmula de antes: acelera com as linhas
+      if (mode == 'contra-tempo') {
+        var progress = Math.min(1, elapsed / timeLimit); // 0 no início, 1 quando o tempo acaba
+        step = Math.max(speed.min, base - (base - speed.min) * progress);
+      }
+      else {
+        step = base;
+      }
+    }
 
     function timerSeconds() { // segundos exibidos: decorridos (Padrão) ou restantes (Contra o Tempo)
       if (mode == 'contra-tempo')
@@ -390,7 +406,7 @@
     function addScore(n)            { score = score + n;   }
     function clearScore()           { setScore(0); }
     function clearRows()            { setRows(0); }
-    function setRows(n)             { rows = n; step = Math.max(speed.min, speed.start - (speed.decrement*rows)); invalidateRows(); }
+    function setRows(n)             { rows = n; updateStep(); invalidateRows(); }
     function addRows(n)             { setRows(rows + n); }
     function getBlock(x,y)          { return (blocks && blocks[x] ? blocks[x][y] : null); }
     function setBlock(x,y,type)     { blocks[x] = blocks[x] || []; blocks[x][y] = type; invalidate(); }
