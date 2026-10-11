@@ -136,14 +136,15 @@
     // game constants
     //-------------------------------------------------------------------------
 
-    var KEY     = { ENTER: 13, ESC: 27, SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 },
+    var KEY     = { ENTER: 13, ESC: 27, SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, G: 71 },
         CONTROLS = [ // displayed on the start and pause screens
           { keys: ['←'],      action: 'mover para a esquerda' },
           { keys: ['→'],      action: 'mover para a direita'  },
           { keys: ['↑'],      action: 'girar a peça'          },
           { keys: ['↓'],      action: 'descer mais rápido'    },
           { keys: ['Espaço'], action: 'pausar / continuar'    },
-          { keys: ['ESC'],    action: 'encerrar a partida'    }
+          { keys: ['ESC'],    action: 'encerrar a partida'    },
+          { keys: ['G'],      action: 'ligar / desligar sombra' }
         ],
         DIR     = { UP: 0, RIGHT: 1, DOWN: 2, LEFT: 3, MIN: 0, MAX: 3 },
         stats   = new Stats(),
@@ -314,6 +315,7 @@
           case KEY.DOWN:   actions.push(DIR.DOWN);  handled = true; break;
           case KEY.ESC:    lose();                  handled = true; break;
           case KEY.SPACE:  pause();                 handled = true; break;
+          case KEY.G:      toggleGhost();           handled = true; break;
         }
       }
       else if (paused) {
@@ -357,7 +359,6 @@
       html('final-time',  formatTime(Math.floor(elapsed)));
       showScreen('gameover-screen');
     }
-
     //------------------------------------------------
     // CRONÔMETRO / MODO CONTRA O TEMPO
     //------------------------------------------------
@@ -420,6 +421,9 @@
     }
 
     // fim: CRONÔMETRO / MODO CONTRA O TEMPO
+    var ghost = true; // true|false - show where the current piece will land (toggled with G)
+
+    function toggleGhost() { ghost = !ghost; invalidate(); }
 
     function setVisualScore(n)      { vscore = n || score; invalidateScore(); }
     function setScore(n)            { score = n; setVisualScore(n);  }
@@ -516,6 +520,13 @@
       });
     }
 
+    function landingY() { 
+      var y = current.y;
+      while (unoccupied(current.type, current.x, y + 1, current.dir))
+        y = y + 1;
+      return y;
+    }
+
     function removeLines() {
       var x, y, complete, n = 0;
       for(y = ny ; y > 0 ; --y) {
@@ -571,8 +582,11 @@
     function drawCourt() {
       if (invalid.court) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (playing)
+        if (playing) {
+          if (ghost)
+            drawGhost();
           drawPiece(ctx, current.type, current.x, current.y, current.dir);
+        }
         var x, y, block;
         for(y = 0 ; y < ny ; y++) {
           for (x = 0 ; x < nx ; x++) {
@@ -618,6 +632,13 @@
         html('timer', formatTime(timerSeconds()));
         invalid.timer = false;
       }
+    }
+
+    function drawGhost() {
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      drawPiece(ctx, current.type, current.x, landingY(), current.dir);
+      ctx.restore();
     }
 
     function drawPiece(ctx, type, x, y, dir) {
