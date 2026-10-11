@@ -61,6 +61,20 @@
       <div id="start-screen" class="overlay">
         <h1>TETRIS</h1>
         <ul class="controls"></ul>
+        <p class="mode" id="mode-options">
+          <label><input type="radio" name="mode" id="mode-padrao" value="padrao" checked> Padrão</label>
+          <label><input type="radio" name="mode" id="mode-contra-tempo" value="contra-tempo"> Contra o tempo</label>
+        </p>
+        <p class="mode">
+          <label>Tempo limite
+            <select id="time-limit" disabled>
+              <option value="60">1 min</option>
+              <option value="120" selected>2 min</option>
+              <option value="180">3 min</option>
+              <option value="300">5 min</option>
+            </select>
+          </label>
+        </p>
         <button type="button" id="play-button">Jogar</button>
         <p class="hint">Pressione Enter para jogar</p>
       </div>
@@ -76,6 +90,7 @@
         <p class="result">Pontuação final: <strong id="final-score">0</strong></p>
         <p class="result">Linhas completadas: <strong id="final-rows">0</strong></p>
         <button type="button" id="replay-button">Jogar novamente</button>
+        <button type="button" id="mode-button">Trocar modo</button>
         <p class="hint">Pressione Enter para jogar novamente</p>
       </div>
     </div>
@@ -226,6 +241,7 @@
 
       showStats();    // initialize FPS counter
       showControls(); // fill the controls list on the start and pause screens
+      updateModeOptions(); // habilita o tempo limite só no modo Contra o Tempo
       addEvents();    // attach keydown, resize and button events
 
       var last = now = timestamp();
@@ -254,6 +270,8 @@
       window.addEventListener('resize', resize, false);
       get('play-button').addEventListener('click', play, false);
       get('replay-button').addEventListener('click', play, false);
+      get('mode-button').addEventListener('click', changeMode, false);
+      get('mode-options').addEventListener('change', updateModeOptions, false); // o change dos radios sobe até o <p>
     }
 
     function showControls() {
@@ -316,7 +334,7 @@
         document.activeElement.blur(); // keep a clicked button from catching the gameplay keys
     }
 
-    function play()   { showScreen(null); reset(); paused = false; playing = true; }
+    function play()   { readMode(); showScreen(null); reset(); paused = false; playing = true; }
     function pause()  { showScreen('pause-screen'); paused = true;  playing = false; }
     function resume() { showScreen(null);           paused = false; playing = true;  }
     function lose() {
@@ -332,11 +350,26 @@
     // CRONÔMETRO / MODO CONTRA O TEMPO
     //------------------------------------------------
 
-    var elapsed; // segundos jogados na partida atual (não conta pausa nem as telas de início e fim)
+    var mode      = 'padrao', // 'padrao' | 'contra-tempo' - escolhido na tela inicial
+        timeLimit = 120,      // tempo limite do modo Contra o Tempo (segundos)
+        elapsed;              // segundos jogados na partida atual (não conta pausa nem as telas de início e fim)
+
+    function readMode() { // lê o modo e o tempo limite escolhidos na tela inicial
+      mode      = get('mode-contra-tempo').checked ? 'contra-tempo' : 'padrao';
+      timeLimit = parseInt(get('time-limit').value, 10);
+    }
+
+    function updateModeOptions() { get('time-limit').disabled = !get('mode-contra-tempo').checked; }
+    function changeMode()        { showScreen('start-screen'); }
 
     function clearTimer()     { elapsed = 0; invalidateTimer(); }
     function updateTimer(idt) { setElapsed(elapsed + idt); }
-    function timerSeconds()   { return Math.floor(elapsed); } // segundos exibidos no cronômetro
+
+    function timerSeconds() { // segundos exibidos: decorridos (Padrão) ou restantes (Contra o Tempo)
+      if (mode == 'contra-tempo')
+        return Math.max(0, Math.ceil(timeLimit - elapsed));
+      return Math.floor(elapsed);
+    }
 
     function setElapsed(n) {
       var before = timerSeconds();
