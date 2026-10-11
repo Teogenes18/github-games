@@ -51,6 +51,7 @@
       <p><canvas id="upcoming"></canvas></p>
       <p>score <span id="score">00000</span></p>
       <p>rows <span id="rows">0</span></p>
+      <p>tempo <span id="timer">00:00</span></p>
     </div>
     <div id="court">
       <canvas id="canvas">
@@ -327,6 +328,30 @@
       showScreen('gameover-screen');
     }
 
+    //------------------------------------------------
+    // CRONÔMETRO / MODO CONTRA O TEMPO
+    //------------------------------------------------
+
+    var elapsed; // segundos jogados na partida atual (não conta pausa nem as telas de início e fim)
+
+    function clearTimer()     { elapsed = 0; invalidateTimer(); }
+    function updateTimer(idt) { setElapsed(elapsed + idt); }
+    function timerSeconds()   { return Math.floor(elapsed); } // segundos exibidos no cronômetro
+
+    function setElapsed(n) {
+      var before = timerSeconds();
+      elapsed = n;
+      if (timerSeconds() != before)
+        invalidateTimer(); // só atualiza o DOM quando o segundo exibido muda
+    }
+
+    function formatTime(seconds) { // mm:ss com zeros à esquerda
+      var m = Math.floor(seconds / 60), s = seconds % 60;
+      return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    // fim: CRONÔMETRO / MODO CONTRA O TEMPO
+
     function setVisualScore(n)      { vscore = n || score; invalidateScore(); }
     function setScore(n)            { score = n; setVisualScore(n);  }
     function addScore(n)            { score = score + n;   }
@@ -343,6 +368,7 @@
 
     function reset() {
       dt = 0;
+      clearTimer();
       clearActions();
       clearBlocks();
       clearRows();
@@ -361,6 +387,8 @@
           dt = dt - step;
           drop();
         }
+        if (playing) // a queda pode ter encerrado a partida
+          updateTimer(idt);
       }
     }
 
@@ -457,6 +485,7 @@
     function invalidateNext()     { invalid.next   = true; }
     function invalidateScore()    { invalid.score  = true; }
     function invalidateRows()     { invalid.rows   = true; }
+    function invalidateTimer()    { invalid.timer  = true; }
 
     function draw() {
       ctx.save();
@@ -466,6 +495,7 @@
       drawNext();
       drawScore();
       drawRows();
+      drawTimer();
       ctx.restore();
     }
 
@@ -511,6 +541,13 @@
       if (invalid.rows) {
         html('rows', rows);
         invalid.rows = false;
+      }
+    }
+
+    function drawTimer() {
+      if (invalid.timer) {
+        html('timer', formatTime(timerSeconds()));
+        invalid.timer = false;
       }
     }
 
