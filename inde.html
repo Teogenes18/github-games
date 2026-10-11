@@ -86,9 +86,10 @@
       </div>
 
       <div id="gameover-screen" class="overlay hidden">
-        <h2>Game Over</h2>
+        <h2 id="gameover-title">Game Over</h2>
         <p class="result">Pontuação final: <strong id="final-score">0</strong></p>
         <p class="result">Linhas completadas: <strong id="final-rows">0</strong></p>
+        <p class="result">Tempo: <strong id="final-time">00:00</strong></p>
         <button type="button" id="replay-button">Jogar novamente</button>
         <button type="button" id="mode-button">Trocar modo</button>
         <p class="hint">Pressione Enter para jogar novamente</p>
@@ -337,12 +338,14 @@
     function play()   { readMode(); showScreen(null); reset(); paused = false; playing = true; }
     function pause()  { showScreen('pause-screen'); paused = true;  playing = false; }
     function resume() { showScreen(null);           paused = false; playing = true;  }
-    function lose() {
+    function lose(timeout) { // timeout: true quando o tempo do modo Contra o Tempo acabou
       playing = false;
       paused  = false;
       setVisualScore();
+      html('gameover-title', timeout ? 'Tempo esgotado!' : 'Game Over');
       html('final-score', score);
       html('final-rows',  rows);
+      html('final-time',  formatTime(Math.floor(elapsed)));
       showScreen('gameover-screen');
     }
 
@@ -366,8 +369,16 @@
 
     function updateTimer(idt) {
       setElapsed(elapsed + idt);
-      if (mode == 'contra-tempo')
+      if (mode == 'contra-tempo') {
         updateStep(); // a velocidade depende do tempo restante
+        if (elapsed >= timeLimit)
+          timeUp();
+      }
+    }
+
+    function timeUp() {
+      setElapsed(timeLimit); // trava o cronômetro em 00:00
+      lose(true);
     }
 
     function updateStep() { // quanto tempo a peça leva para descer 1 linha (segundos)
