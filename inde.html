@@ -14,6 +14,7 @@
     #upcoming { display: block; margin: 0 auto; background-color: #E0E0E0; }
     #score    { color: blue; font-weight: bold; vertical-align: middle; }
     #rows     { color: blue; font-weight: bold; vertical-align: middle; }
+    #timer    { color: blue; font-weight: bold; vertical-align: middle; }
     #stats    { position: absolute; bottom: 0em; right: 1em; }
     #court    { display: inline-block; vertical-align: top; position: relative; }
     #court #canvas { display: block; }
@@ -30,6 +31,14 @@
     .overlay button  { font: inherit; font-size: 0.7em; font-weight: bold; margin: 0.5em 0; padding: 0.3em 1em; cursor: pointer;
                        border: 2px solid white; border-radius: 6px; background-color: #36C; color: white; }
     .overlay button:hover, .overlay button:focus { background-color: #47E; }
+    .overlay button.secondary { margin-top: 0; background-color: transparent; }
+    .overlay button.secondary:hover, .overlay button.secondary:focus { background-color: #47E; }
+    .overlay .mode   { margin: 0.2em 0; }
+    .overlay .mode label  { display: inline-block; margin: 0.1em 0.3em; white-space: nowrap; cursor: pointer; }
+    .overlay .mode input  { width: 1em; height: 1em; margin: 0 0.2em 0 0; vertical-align: middle; cursor: pointer; }
+    .overlay .mode select { font: inherit; margin-left: 0.2em; padding: 0 0.2em; border: 1px solid #AAA; border-radius: 3px;
+                            background-color: #333; color: white; cursor: pointer; }
+    .overlay .mode select:disabled { opacity: 0.4; cursor: default; }
     .controls        { font-size: 0.5em; margin: 0.3em 0; padding: 0; list-style: none; text-align: left; }
     .controls li     { margin: 0.2em 0; white-space: nowrap; }
     .controls kbd    { display: inline-block; min-width: 1.2em; padding: 0 0.25em; margin-right: 0.1em; text-align: center;
@@ -91,7 +100,7 @@
         <p class="result">Linhas completadas: <strong id="final-rows">0</strong></p>
         <p class="result">Tempo: <strong id="final-time">00:00</strong></p>
         <button type="button" id="replay-button">Jogar novamente</button>
-        <button type="button" id="mode-button">Trocar modo</button>
+        <button type="button" id="mode-button" class="secondary">Trocar modo</button>
         <p class="hint">Pressione Enter para jogar novamente</p>
       </div>
     </div>
