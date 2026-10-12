@@ -14,6 +14,7 @@
     #upcoming { display: block; margin: 0 auto; background-color: #E0E0E0; }
     #score    { color: blue; font-weight: bold; vertical-align: middle; }
     #rows     { color: blue; font-weight: bold; vertical-align: middle; }
+    #timer    { color: blue; font-weight: bold; vertical-align: middle; }
     #stats    { position: absolute; bottom: 0em; right: 1em; }
     #court    { display: inline-block; vertical-align: top; position: relative; }
     #court #canvas { display: block; }
@@ -30,6 +31,14 @@
     .overlay button  { font: inherit; font-size: 0.7em; font-weight: bold; margin: 0.5em 0; padding: 0.3em 1em; cursor: pointer;
                        border: 2px solid white; border-radius: 6px; background-color: #36C; color: white; }
     .overlay button:hover, .overlay button:focus { background-color: #47E; }
+    .overlay button.secondary { margin-top: 0; background-color: transparent; }
+    .overlay button.secondary:hover, .overlay button.secondary:focus { background-color: #47E; }
+    .overlay .mode   { margin: 0.2em 0; }
+    .overlay .mode label  { display: inline-block; margin: 0.1em 0.3em; white-space: nowrap; cursor: pointer; }
+    .overlay .mode input  { width: 1em; height: 1em; margin: 0 0.2em 0 0; vertical-align: middle; cursor: pointer; }
+    .overlay .mode select { font: inherit; margin-left: 0.2em; padding: 0 0.2em; border: 1px solid #AAA; border-radius: 3px;
+                            background-color: #333; color: white; cursor: pointer; }
+    .overlay .mode select:disabled { opacity: 0.4; cursor: default; }
     .controls        { font-size: 0.5em; margin: 0.3em 0; padding: 0; list-style: none; text-align: left; }
     .controls li     { margin: 0.2em 0; white-space: nowrap; }
     .controls kbd    { display: inline-block; min-width: 1.2em; padding: 0 0.25em; margin-right: 0.1em; text-align: center;
@@ -51,6 +60,7 @@
       <p><canvas id="upcoming"></canvas></p>
       <p>score <span id="score">00000</span></p>
       <p>rows <span id="rows">0</span></p>
+      <p>tempo <span id="timer">00:00</span></p>
     </div>
     <div id="court">
       <canvas id="canvas">
@@ -60,6 +70,20 @@
       <div id="start-screen" class="overlay">
         <h1>TETRIS</h1>
         <ul class="controls"></ul>
+        <p class="mode" id="mode-options">
+          <label><input type="radio" name="mode" id="mode-padrao" value="padrao" checked> Padrão</label>
+          <label><input type="radio" name="mode" id="mode-contra-tempo" value="contra-tempo"> Contra o tempo</label>
+        </p>
+        <p class="mode">
+          <label>Tempo limite
+            <select id="time-limit" disabled>
+              <option value="60">1 min</option>
+              <option value="120" selected>2 min</option>
+              <option value="180">3 min</option>
+              <option value="300">5 min</option>
+            </select>
+          </label>
+        </p>
         <button type="button" id="play-button">Jogar</button>
         <p class="hint">Pressione Enter para jogar</p>
       </div>
@@ -71,10 +95,12 @@
       </div>
 
       <div id="gameover-screen" class="overlay hidden">
-        <h2>Game Over</h2>
+        <h2 id="gameover-title">Game Over</h2>
         <p class="result">Pontuação final: <strong id="final-score">0</strong></p>
         <p class="result">Linhas completadas: <strong id="final-rows">0</strong></p>
+        <p class="result">Tempo: <strong id="final-time">00:00</strong></p>
         <button type="button" id="replay-button">Jogar novamente</button>
+        <button type="button" id="mode-button" class="secondary">Trocar modo</button>
         <p class="hint">Pressione Enter para jogar novamente</p>
       </div>
     </div>
@@ -226,6 +252,7 @@
 
       showStats();    // initialize FPS counter
       showControls(); // fill the controls list on the start and pause screens
+      updateModeOptions(); // habilita o tempo limite só no modo Contra o Tempo
       addEvents();    // attach keydown, resize and button events
 
       var last = now = timestamp();
@@ -254,6 +281,8 @@
       window.addEventListener('resize', resize, false);
       get('play-button').addEventListener('click', play, false);
       get('replay-button').addEventListener('click', play, false);
+      get('mode-button').addEventListener('click', changeMode, false);
+      get('mode-options').addEventListener('change', updateModeOptions, false); // o change dos radios sobe até o <p>
     }
 
     function showControls() {
@@ -317,18 +346,81 @@
         document.activeElement.blur(); // keep a clicked button from catching the gameplay keys
     }
 
-    function play()   { showScreen(null); reset(); paused = false; playing = true; }
+    function play()   { readMode(); showScreen(null); reset(); paused = false; playing = true; }
     function pause()  { showScreen('pause-screen'); paused = true;  playing = false; }
     function resume() { showScreen(null);           paused = false; playing = true;  }
-    function lose() {
+    function lose(timeout) { // timeout: true quando o tempo do modo Contra o Tempo acabou
       playing = false;
       paused  = false;
       setVisualScore();
+      html('gameover-title', timeout ? 'Tempo esgotado!' : 'Game Over');
       html('final-score', score);
       html('final-rows',  rows);
+      html('final-time',  formatTime(Math.floor(elapsed)));
       showScreen('gameover-screen');
     }
+    //------------------------------------------------
+    // CRONÔMETRO / MODO CONTRA O TEMPO
+    //------------------------------------------------
 
+    var mode      = 'padrao', // 'padrao' | 'contra-tempo' - escolhido na tela inicial
+        timeLimit = 120,      // tempo limite do modo Contra o Tempo (segundos)
+        elapsed;              // segundos jogados na partida atual (não conta pausa nem as telas de início e fim)
+
+    function readMode() { // lê o modo e o tempo limite escolhidos na tela inicial
+      mode      = get('mode-contra-tempo').checked ? 'contra-tempo' : 'padrao';
+      timeLimit = parseInt(get('time-limit').value, 10);
+    }
+
+    function updateModeOptions() { get('time-limit').disabled = !get('mode-contra-tempo').checked; }
+    function changeMode()        { showScreen('start-screen'); }
+
+    function clearTimer()     { elapsed = 0; invalidateTimer(); }
+
+    function updateTimer(idt) {
+      setElapsed(elapsed + idt);
+      if (mode == 'contra-tempo') {
+        updateStep(); // a velocidade depende do tempo restante
+        if (elapsed >= timeLimit)
+          timeUp();
+      }
+    }
+
+    function timeUp() {
+      setElapsed(timeLimit); // trava o cronômetro em 00:00
+      lose(true);
+    }
+
+    function updateStep() { // quanto tempo a peça leva para descer 1 linha (segundos)
+      var base = Math.max(speed.min, speed.start - (speed.decrement*rows)); // mesma fórmula de antes: acelera com as linhas
+      if (mode == 'contra-tempo') {
+        var progress = Math.min(1, elapsed / timeLimit); // 0 no início, 1 quando o tempo acaba
+        step = Math.max(speed.min, base - (base - speed.min) * progress);
+      }
+      else {
+        step = base;
+      }
+    }
+
+    function timerSeconds() { // segundos exibidos: decorridos (Padrão) ou restantes (Contra o Tempo)
+      if (mode == 'contra-tempo')
+        return Math.max(0, Math.ceil(timeLimit - elapsed));
+      return Math.floor(elapsed);
+    }
+
+    function setElapsed(n) {
+      var before = timerSeconds();
+      elapsed = n;
+      if (timerSeconds() != before)
+        invalidateTimer(); // só atualiza o DOM quando o segundo exibido muda
+    }
+
+    function formatTime(seconds) { // mm:ss com zeros à esquerda
+      var m = Math.floor(seconds / 60), s = seconds % 60;
+      return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    // fim: CRONÔMETRO / MODO CONTRA O TEMPO
     var ghost = true; // true|false - show where the current piece will land (toggled with G)
 
     function toggleGhost() { ghost = !ghost; invalidate(); }
@@ -338,7 +430,7 @@
     function addScore(n)            { score = score + n;   }
     function clearScore()           { setScore(0); }
     function clearRows()            { setRows(0); }
-    function setRows(n)             { rows = n; step = Math.max(speed.min, speed.start - (speed.decrement*rows)); invalidateRows(); }
+    function setRows(n)             { rows = n; updateStep(); invalidateRows(); }
     function addRows(n)             { setRows(rows + n); }
     function getBlock(x,y)          { return (blocks && blocks[x] ? blocks[x][y] : null); }
     function setBlock(x,y,type)     { blocks[x] = blocks[x] || []; blocks[x][y] = type; invalidate(); }
@@ -349,6 +441,7 @@
 
     function reset() {
       dt = 0;
+      clearTimer();
       clearActions();
       clearBlocks();
       clearRows();
@@ -367,6 +460,8 @@
           dt = dt - step;
           drop();
         }
+        if (playing) // a queda pode ter encerrado a partida
+          updateTimer(idt);
       }
     }
 
@@ -470,6 +565,7 @@
     function invalidateNext()     { invalid.next   = true; }
     function invalidateScore()    { invalid.score  = true; }
     function invalidateRows()     { invalid.rows   = true; }
+    function invalidateTimer()    { invalid.timer  = true; }
 
     function draw() {
       ctx.save();
@@ -479,6 +575,7 @@
       drawNext();
       drawScore();
       drawRows();
+      drawTimer();
       ctx.restore();
     }
 
@@ -530,7 +627,14 @@
       }
     }
 
-    function drawGhost() { 
+    function drawTimer() {
+      if (invalid.timer) {
+        html('timer', formatTime(timerSeconds()));
+        invalid.timer = false;
+      }
+    }
+
+    function drawGhost() {
       ctx.save();
       ctx.globalAlpha = 0.3;
       drawPiece(ctx, current.type, current.x, landingY(), current.dir);
