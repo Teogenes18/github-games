@@ -91,8 +91,23 @@
       <div id="pause-screen" class="overlay hidden">
         <h2>Pausado</h2>
         <ul class="controls"></ul>
-        <p class="hint">Pressione Espaço para continuar</p>
+        <p class="hint">Pressione P ou Enter para continuar</p>
       </div>
+      <div id="restart-screen" class="overlay hidden">
+        <h2>Reiniciar partida?</h2>
+        <p>O progresso atual será perdido.</p>
+
+        <button type="button" id="confirm-restart-button">
+          Reiniciar
+        </button>
+
+        <button type="button" id="cancel-restart-button">
+          Cancelar
+        </button>
+
+        <p class="hint">Pressione Enter para confirmar ou ESC para cancelar</p>
+      </div>
+
 
       <div id="gameover-screen" class="overlay hidden">
         <h2 id="gameover-title">Game Over</h2>
@@ -136,16 +151,35 @@
     // game constants
     //-------------------------------------------------------------------------
 
-    var KEY     = { ENTER: 13, ESC: 27, SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, G: 71 },
-        CONTROLS = [ // displayed on the start and pause screens
-          { keys: ['←'],      action: 'mover para a esquerda' },
-          { keys: ['→'],      action: 'mover para a direita'  },
-          { keys: ['↑'],      action: 'girar a peça'          },
-          { keys: ['↓'],      action: 'descer mais rápido'    },
-          { keys: ['Espaço'], action: 'pausar / continuar'    },
-          { keys: ['ESC'],    action: 'encerrar a partida'    },
-          { keys: ['G'],      action: 'ligar / desligar sombra' }
+
+    var KEY = {
+      ENTER: 13,
+      ESC: 27,
+      SPACE: 32,
+      LEFT: 37,
+      UP: 38,
+      RIGHT: 39,
+      DOWN: 40,
+      A: 65,
+      D: 68,
+      W: 87,
+      S: 83,
+      P: 80,
+      R: 82,
+      G: 71
+    },
+        CONTROLS = [
+          { keys: ['←', 'A'], action: 'mover para a esquerda' },
+          { keys: ['→', 'D'], action: 'mover para a direita' },
+          { keys: ['↑', 'W'], action: 'girar a peça' },
+          { keys: ['↓', 'S'], action: 'descer mais rápido' },
+          { keys: ['Espaço'], action: 'queda imediata' },
+          { keys: ['P'], action: 'pausar / continuar' },
+          { keys: ['R'], action: 'reiniciar partida' },
+          { keys: ['ESC'], action: 'encerrar a partida' },
+          { keys: ['G'], action: 'ligar / desligar sombra' }
         ],
+        
         DIR     = { UP: 0, RIGHT: 1, DOWN: 2, LEFT: 3, MIN: 0, MAX: 3 },
         stats   = new Stats(),
         canvas  = get('canvas'),
@@ -173,6 +207,9 @@
         vscore,        // the currently displayed score (it catches up to score in small chunks - like a spinning slot machine)
         rows,          // number of completed rows in the current game
         step;          // how long before current piece drops by 1 row
+
+        var restartWasPlaying = false;
+        var restartWasPaused = false;
 
     //-------------------------------------------------------------------------
     // tetris pieces
@@ -279,10 +316,25 @@
     function addEvents() {
       document.addEventListener('keydown', keydown, false);
       window.addEventListener('resize', resize, false);
+
       get('play-button').addEventListener('click', play, false);
       get('replay-button').addEventListener('click', play, false);
+
+      get('confirm-restart-button').addEventListener(
+        'click',
+        confirmRestart,
+        false
+      );
+
+      get('cancel-restart-button').addEventListener(
+        'click',
+        cancelRestart,
+        false
+      );
+      
       get('mode-button').addEventListener('click', changeMode, false);
       get('mode-options').addEventListener('change', updateModeOptions, false); // o change dos radios sobe até o <p>
+
     }
 
     function showControls() {
@@ -307,36 +359,126 @@
 
     function keydown(ev) {
       var handled = false;
+
+      if (ev.repeat && (
+        ev.keyCode === KEY.SPACE ||
+        ev.keyCode === KEY.P ||
+        ev.keyCode === KEY.R
+      )) {
+        ev.preventDefault();
+        return;
+      }
+
+      // Se a confirmação de reinício estiver aberta,
+      // trata apenas os comandos dessa tela.
+      if (!get('restart-screen').classList.contains('hidden')) {
+        switch (ev.keyCode) {
+          case KEY.ENTER:
+            confirmRestart();
+            handled = true;
+            break;
+
+          case KEY.ESC:
+            cancelRestart();
+            handled = true;
+            break;
+        }
+
+        if (handled) {
+          ev.preventDefault();
+        }
+
+        return;
+      }
+
       if (playing) {
-        switch(ev.keyCode) {
-          case KEY.LEFT:   actions.push(DIR.LEFT);  handled = true; break;
-          case KEY.RIGHT:  actions.push(DIR.RIGHT); handled = true; break;
-          case KEY.UP:     actions.push(DIR.UP);    handled = true; break;
-          case KEY.DOWN:   actions.push(DIR.DOWN);  handled = true; break;
-          case KEY.ESC:    lose();                  handled = true; break;
-          case KEY.SPACE:  pause();                 handled = true; break;
-          case KEY.G:      toggleGhost();           handled = true; break;
+        switch (ev.keyCode) {
+          case KEY.ESC:
+            lose();
+            handled = true;
+            break;
+
+          case KEY.SPACE:
+            hardDrop();
+            handled = true;
+            break;
+
+          case KEY.P:
+            pause();
+            handled = true;
+            break;
+
+          case KEY.R:
+            requestRestart();
+            handled = true;
+            break;
+
+          case KEY.LEFT:
+          case KEY.A:
+            actions.push(DIR.LEFT);
+            handled = true;
+            break;
+
+          case KEY.RIGHT:
+          case KEY.D:
+            actions.push(DIR.RIGHT);
+            handled = true;
+            break;
+
+          case KEY.UP:
+          case KEY.W:
+            actions.push(DIR.UP);
+            handled = true;
+            break;
+
+          case KEY.DOWN:
+          case KEY.S:
+            actions.push(DIR.DOWN);
+            handled = true;
+            break;
+          
+          case KEY.G:
+            toggleGhost();
+            handled = true;
+            break;
+        }
+      } else if (paused) {
+        switch (ev.keyCode) {
+          case KEY.P:
+          case KEY.ENTER:
+            resume();
+            handled = true;
+            break;
+
+          case KEY.R:
+            requestRestart();
+            handled = true;
+            break;
+
+          case KEY.ESC:
+            lose();
+            handled = true;
+            break;
+        }
+      } else {
+        // Somente Enter inicia ou reinicia após Game Over.
+        // Espaço não inicia nem despausa.
+        if (ev.keyCode === KEY.ENTER) {
+          play();
+          handled = true;
         }
       }
-      else if (paused) {
-        switch(ev.keyCode) {
-          case KEY.SPACE: case KEY.ENTER: resume(); handled = true; break;
-          case KEY.ESC:                   lose();   handled = true; break;
-        }
+
+      if (handled) {
+        ev.preventDefault();
       }
-      else if (ev.keyCode == KEY.ENTER || ev.keyCode == KEY.SPACE) { // start or game over screen
-        play();
-        handled = true;
-      }
-      if (handled)
-        ev.preventDefault(); // prevent arrow keys from scrolling the page (supported in IE9+ and all other browsers)
     }
 
     //-------------------------------------------------------------------------
     // GAME LOGIC
     //-------------------------------------------------------------------------
 
-    var SCREENS = ['start-screen', 'pause-screen', 'gameover-screen'];
+    var SCREENS = ['start-screen', 'pause-screen', 'restart-screen', 'gameover-screen'];
 
     function showScreen(id) { // show a single overlay screen over the court, or none when id is null
       SCREENS.forEach(function(screen) {
@@ -349,6 +491,40 @@
     function play()   { readMode(); showScreen(null); reset(); paused = false; playing = true; }
     function pause()  { showScreen('pause-screen'); paused = true;  playing = false; }
     function resume() { showScreen(null);           paused = false; playing = true;  }
+
+    function requestRestart() {
+      if (!playing && !paused) {
+        return;
+      }
+
+      restartWasPlaying = playing;
+      restartWasPaused = paused;
+
+      playing = false;
+      paused = false;
+
+      showScreen('restart-screen');
+    }
+
+    function confirmRestart() {
+      restartWasPlaying = false;
+      restartWasPaused = false;
+      play();
+    }
+
+    function cancelRestart() {
+      if (restartWasPaused) {
+        pause();
+      } else if (restartWasPlaying) {
+        resume();
+      } else {
+        showScreen(null);
+      }
+
+      restartWasPlaying = false;
+      restartWasPaused = false;
+    }
+
     function lose(timeout) { // timeout: true quando o tempo do modo Contra o Tempo acabou
       playing = false;
       paused  = false;
@@ -440,6 +616,9 @@
     function setNextPiece(piece)    { next    = piece || randomPiece(); invalidateNext(); }
 
     function reset() {
+      playing = false;
+      paused = false;
+
       dt = 0;
       clearTimer();
       clearActions();
@@ -514,10 +693,36 @@
       }
     }
 
+    function hardDrop() {
+      if (!playing || paused) {
+        return;
+      }
+
+      while (move(DIR.DOWN)) {
+        // Desce até a posição final.
+      }
+      drop();
+    }
+
     function dropPiece() {
       eachblock(current.type, current.x, current.y, current.dir, function(x, y) {
         setBlock(x, y, current.type);
       });
+    }
+
+    function removeLine(n) {
+      var x, y;
+
+      for (y = n; y > 0; y--) {
+        for (x = 0; x < nx; x++) {
+          blocks[x][y] = blocks[x][y - 1] || null;
+        }
+      }
+
+      for (x = 0; x < nx; x++) {
+        blocks[x][0] = null;
+      }
+      invalidate();
     }
 
     function landingY() { 
@@ -529,31 +734,30 @@
 
     function removeLines() {
       var x, y, complete, n = 0;
-      for(y = ny ; y > 0 ; --y) {
+
+      for (y = ny - 1; y >= 0; --y) {
         complete = true;
-        for(x = 0 ; x < nx ; ++x) {
-          if (!getBlock(x, y))
+
+        for (x = 0; x < nx; ++x) {
+          if (!getBlock(x, y)) {
             complete = false;
+            break;
+          }
         }
+
         if (complete) {
           removeLine(y);
-          y = y + 1; // recheck same line
+          y++; // Revisa a mesma linha após deslocar as linhas acima.
           n++;
         }
       }
+
       if (n > 0) {
         addRows(n);
-        addScore(100*Math.pow(2,n-1)); // 1: 100, 2: 200, 3: 400, 4: 800
+        addScore(100 * Math.pow(2, n - 1));
       }
     }
 
-    function removeLine(n) {
-      var x, y;
-      for(y = n ; y >= 0 ; --y) {
-        for(x = 0 ; x < nx ; ++x)
-          setBlock(x, y, (y == 0) ? null : getBlock(x, y-1));
-      }
-    }
 
     //-------------------------------------------------------------------------
     // RENDERING
