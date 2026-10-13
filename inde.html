@@ -22,6 +22,7 @@
                 display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: auto;
                 background-color: rgba(0, 0, 0, 0.8); color: white; text-align: center; border-radius: 2px; }
     .overlay.hidden  { display: none; }
+    #tetris.challenge-dark #court::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 1; background: #000; pointer-events: none; }
     .overlay h1      { font-size: 1.1em; margin: 0 0 0.4em 0; letter-spacing: 0.05em; }
     .overlay h2      { font-size: 0.9em; margin: 0 0 0.4em 0; }
     .overlay p       { font-size: 0.6em; margin: 0.3em 0; }
@@ -489,7 +490,7 @@
     }
 
     function play()   { readMode(); showScreen(null); reset(); paused = false; playing = true; }
-    function pause()  { showScreen('pause-screen'); paused = true;  playing = false; }
+    function pause()  { clearChallengeEffect(); showScreen('pause-screen'); paused = true;  playing = false; }
     function resume() { showScreen(null);           paused = false; playing = true;  }
 
     function requestRestart() {
@@ -500,6 +501,7 @@
       restartWasPlaying = playing;
       restartWasPaused = paused;
 
+      clearChallengeEffect();
       playing = false;
       paused = false;
 
@@ -528,6 +530,7 @@
     function lose(timeout) { // timeout: true quando o tempo do modo Contra o Tempo acabou
       playing = false;
       paused  = false;
+      clearChallengeEffect();
       setVisualScore();
       html('gameover-title', timeout ? 'Tempo esgotado!' : 'Game Over');
       html('final-score', score);
@@ -541,7 +544,35 @@
 
     var mode      = 'padrao', // 'padrao' | 'contra-tempo' - escolhido na tela inicial
         timeLimit = 120,      // tempo limite do modo Contra o Tempo (segundos)
-        elapsed;              // segundos jogados na partida atual (não conta pausa nem as telas de início e fim)
+        elapsed,              // segundos jogados na partida atual (não conta pausa nem as telas de início e fim)
+        challengeEffect = null,
+        challengeEffectUntil = 0,
+        nextChallengeAt = 0;
+
+    var CHALLENGE_EFFECT_DURATION = 2;
+    var CHALLENGE_MIN_INTERVAL = 10;
+    var CHALLENGE_MAX_INTERVAL = 20;
+
+    function clearChallengeEffect() {
+      challengeEffect = null;
+      get('tetris').classList.remove('challenge-dark');
+    }
+
+    function updateChallenge() {
+      if (mode !== 'contra-tempo')
+        return;
+
+      if (challengeEffect && elapsed >= challengeEffectUntil)
+        clearChallengeEffect();
+
+      if (!challengeEffect && elapsed >= nextChallengeAt &&
+          elapsed + CHALLENGE_EFFECT_DURATION <= timeLimit) {
+        challengeEffect = 'challenge-dark';
+        challengeEffectUntil = elapsed + CHALLENGE_EFFECT_DURATION;
+        nextChallengeAt = elapsed + random(CHALLENGE_MIN_INTERVAL, CHALLENGE_MAX_INTERVAL);
+        get('tetris').classList.add(challengeEffect);
+      }
+    }
 
     function readMode() { // lê o modo e o tempo limite escolhidos na tela inicial
       mode      = get('mode-contra-tempo').checked ? 'contra-tempo' : 'padrao';
@@ -621,6 +652,8 @@
 
       dt = 0;
       clearTimer();
+      clearChallengeEffect();
+      nextChallengeAt = random(CHALLENGE_MIN_INTERVAL, CHALLENGE_MAX_INTERVAL);
       clearActions();
       clearBlocks();
       clearRows();
@@ -641,6 +674,8 @@
         }
         if (playing) // a queda pode ter encerrado a partida
           updateTimer(idt);
+        if (playing)
+          updateChallenge();
       }
     }
 
