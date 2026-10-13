@@ -11,6 +11,7 @@
     #menu     { display: inline-block; vertical-align: top; position: relative; }
     #menu p   { margin: 0.5em 0; text-align: center; }
     #menu p a { text-decoration: none; color: black; }
+    #audio-toggle { font: inherit; font-size: 0.65em; cursor: pointer; }
     #upcoming { display: block; margin: 0 auto; background-color: #E0E0E0; }
     #score    { color: blue; font-weight: bold; vertical-align: middle; }
     #rows     { color: blue; font-weight: bold; vertical-align: middle; }
@@ -62,6 +63,7 @@
       <p>score <span id="score">00000</span></p>
       <p>rows <span id="rows">0</span></p>
       <p>tempo <span id="timer">00:00</span></p>
+      <p><button type="button" id="audio-toggle" aria-pressed="true">Música: ligada</button></p>
     </div>
     <div id="court">
       <canvas id="canvas">
@@ -290,6 +292,7 @@
 
       showStats();    // initialize FPS counter
       showControls(); // fill the controls list on the start and pause screens
+      updateAudioControl();
       updateModeOptions(); // habilita o tempo limite só no modo Contra o Tempo
       addEvents();    // attach keydown, resize and button events
 
@@ -317,6 +320,7 @@
     function addEvents() {
       document.addEventListener('keydown', keydown, false);
       window.addEventListener('resize', resize, false);
+      get('audio-toggle').addEventListener('click', toggleAmbient, false);
 
       get('play-button').addEventListener('click', play, false);
       get('replay-button').addEventListener('click', play, false);
@@ -489,9 +493,146 @@
         document.activeElement.blur(); // keep a clicked button from catching the gameplay keys
     }
 
-    function play()   { readMode(); showScreen(null); reset(); paused = false; playing = true; }
-    function pause()  { clearChallengeEffect(); showScreen('pause-screen'); paused = true;  playing = false; }
-    function resume() { showScreen(null);           paused = false; playing = true;  }
+    var audioContext = null,
+        musicGain = null,
+        ambientTimer = null,
+        ambientEnabled = true,
+        ambientNoteAt = 0,
+        ambientNoteIndex = 0;
+
+    var AMBIENT_NOTES = [220, 261.63, 329.63, 261.63, 196, 246.94, 293.66, 246.94];
+
+    function initializeAudio() {
+      var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      var button = get('audio-toggle');
+
+      if (!AudioContextClass) {
+        button.disabled = true;
+        button.textContent = 'Áudio indisponível';
+        button.title = 'Este navegador não oferece suporte a áudio Web.';
+        button.setAttribute('aria-pressed', 'false');
+        return false;
+      }
+
+      if (!audioContext) {
+        audioContext = new AudioContextClass();
+        musicGain = audioContext.createGain();
+        musicGain.gain.value = 0.65;
+        musicGain.connect(audioContext.destination);
+      }
+      return true;
+    }
+
+    function playTone(frequency, duration, waveform, volume, when, destination, endFrequency) {
+      if (!initializeAudio())
+        return;
+      if (audioContext.state === 'suspended')
+        audioContext.resume();
+
+      var start = when === undefined ? audioContext.currentTime + 0.005 : when;
+      var oscillator = audioContext.createOscillator();
+      var envelope = audioContext.createGain();
+      oscillator.type = waveform;
+      oscillator.frequency.setValueAtTime(frequency, start);
+      if (endFrequency)
+        oscillator.frequency.exponentialRampToValueAtTime(endFrequency, start + duration);
+      envelope.gain.setValueAtTime(0.0001, start);
+      envelope.gain.exponentialRampToValueAtTime(volume, start + 0.015);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      oscillator.connect(envelope);
+      envelope.connect(destination || audioContext.destination);
+      oscillator.start(start);
+      oscillator.stop(start + duration + 0.01);
+    }
+
+    function updateAudioControl() {
+      var button = get('audio-toggle');
+      if (!(window.AudioContext || window.webkitAudioContext)) {
+        button.disabled = true;
+        button.textContent = 'Áudio indisponível';
+        button.title = 'Este navegador não oferece suporte a áudio Web.';
+        button.setAttribute('aria-pressed', 'false');
+        return;
+      }
+      button.textContent = ambientEnabled ? 'Música: ligada' : 'Música: desligada';
+      button.setAttribute('aria-pressed', ambientEnabled ? 'true' : 'false');
+    }
+
+    function toggleAmbient() {
+      if (!initializeAudio())
+        return;
+
+      ambientEnabled = !ambientEnabled;
+      updateAudioControl();
+      if (ambientEnabled && playing)
+        startAmbient();
+      else
+        stopAmbient();
+    }
+
+    function scheduleAmbientNotes() {
+      if (!audioContext || audioContext.state !== 'running')
+        return;
+
+      var now = audioContext.currentTime;
+      if (ambientNoteAt < now - 0.1)
+        ambientNoteAt = now + 0.03;
+      while (ambientNoteAt < now + 0.15) {
+        playTone(AMBIENT_NOTES[ambientNoteIndex], 0.38, 'triangle', 0.035,
+          ambientNoteAt, musicGain);
+        if (ambientNoteIndex % 4 === 0)
+          playTone(110, 0.42, 'sine', 0.018, ambientNoteAt, musicGain);
+        ambientNoteAt += 0.46;
+        ambientNoteIndex = (ambientNoteIndex + 1) % AMBIENT_NOTES.length;
+      }
+    }
+
+    function startAmbient() {
+      if (!ambientEnabled || !playing || !initializeAudio())
+        return;
+      if (audioContext.state === 'suspended')
+        audioContext.resume();
+      if (ambientTimer)
+        return;
+
+      ambientNoteAt = audioContext.currentTime + 0.03;
+      ambientNoteIndex = 0;
+      scheduleAmbientNotes();
+      ambientTimer = window.setInterval(scheduleAmbientNotes, 100);
+    }
+
+    function stopAmbient() {
+      if (ambientTimer) {
+        window.clearInterval(ambientTimer);
+        ambientTimer = null;
+      }
+    }
+
+    function playMoveSound() {
+      playTone(440, 0.055, 'square', 0.018);
+    }
+
+    function playLockSound() {
+      playTone(150, 0.12, 'triangle', 0.07, undefined, undefined, 65);
+    }
+
+    function playLineSound(count) {
+      var notes = [659.25, 783.99, 987.77, 1174.66];
+      var now = audioContext ? audioContext.currentTime + 0.02 : undefined;
+      for (var n = 0; n < Math.min(count, notes.length); n++)
+        playTone(notes[n], 0.18, 'sine', 0.055, now === undefined ? undefined : now + n * 0.09);
+    }
+
+    function playGameOverSound() {
+      var notes = [392, 329.63, 261.63];
+      var now = audioContext ? audioContext.currentTime + 0.02 : undefined;
+      for (var n = 0; n < notes.length; n++)
+        playTone(notes[n], 0.28, 'triangle', 0.06, now === undefined ? undefined : now + n * 0.2);
+    }
+
+    function play()   { readMode(); reset(); paused = false; playing = true; showScreen(null); startAmbient(); }
+    function pause()  { clearChallengeEffect(); stopAmbient(); showScreen('pause-screen'); paused = true;  playing = false; }
+    function resume() { showScreen(null);           paused = false; playing = true;  startAmbient(); }
 
     function requestRestart() {
       if (!playing && !paused) {
@@ -502,6 +643,7 @@
       restartWasPaused = paused;
 
       clearChallengeEffect();
+      stopAmbient();
       playing = false;
       paused = false;
 
@@ -531,6 +673,8 @@
       playing = false;
       paused  = false;
       clearChallengeEffect();
+      stopAmbient();
+      playGameOverSound();
       setVisualScore();
       html('gameover-title', timeout ? 'Tempo esgotado!' : 'Game Over');
       html('final-score', score);
@@ -681,10 +825,19 @@
 
     function handle(action) {
       switch(action) {
-        case DIR.LEFT:  move(DIR.LEFT);  break;
-        case DIR.RIGHT: move(DIR.RIGHT); break;
-        case DIR.UP:    rotate();        break;
-        case DIR.DOWN:  drop();          break;
+        case DIR.LEFT:
+          if (move(DIR.LEFT)) playMoveSound();
+          break;
+        case DIR.RIGHT:
+          if (move(DIR.RIGHT)) playMoveSound();
+          break;
+        case DIR.UP:
+          if (rotate()) playMoveSound();
+          break;
+        case DIR.DOWN:
+          if (move(DIR.DOWN)) playMoveSound();
+          else drop();
+          break;
       }
     }
 
@@ -711,14 +864,19 @@
       if (unoccupied(current.type, current.x, current.y, newdir)) {
         current.dir = newdir;
         invalidate();
+        return true;
       }
+      return false;
     }
 
     function drop() {
       if (!move(DIR.DOWN)) {
+        playLockSound();
         addScore(10);
         dropPiece();
-        removeLines();
+        var cleared = removeLines();
+        if (cleared)
+          playLineSound(cleared);
         setCurrentPiece(next);
         setNextPiece(randomPiece());
         clearActions();
@@ -791,6 +949,7 @@
         addRows(n);
         addScore(100 * Math.pow(2, n - 1));
       }
+      return n;
     }
 
 
