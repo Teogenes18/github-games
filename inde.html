@@ -16,6 +16,8 @@
     #score    { color: blue; font-weight: bold; vertical-align: middle; }
     #rows     { color: blue; font-weight: bold; vertical-align: middle; }
     #timer    { color: blue; font-weight: bold; vertical-align: middle; }
+    #timer.alerta { color: red; animation: pisca 0.5s infinite alternate; } /* últimos 10 segundos */
+    @keyframes pisca { to { opacity: 0.3; } }
     #stats    { position: absolute; bottom: 0em; right: 1em; }
     #court    { display: inline-block; vertical-align: top; position: relative; }
     #court #canvas { display: block; }
@@ -1040,6 +1042,7 @@
     function drawTimer() {
       if (invalid.timer) {
         html('timer', formatTime(timerSeconds()));
+        get('timer').classList.toggle('alerta', mode == 'contra-tempo' && timerSeconds() <= 10); // alerta nos últimos 10 segundos
         invalid.timer = false;
       }
     }
