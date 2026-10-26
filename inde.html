@@ -342,6 +342,7 @@
       
       get('mode-button').addEventListener('click', changeMode, false);
       get('mode-options').addEventListener('change', updateModeOptions, false); // o change dos radios sobe até o <p>
+      window.addEventListener('blur', pause, false); // pausa sozinho quando a janela perde o foco
 
     }
 
