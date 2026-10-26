@@ -29,6 +29,7 @@
     .overlay p       { font-size: 0.6em; margin: 0.3em 0; }
     .overlay .result { font-size: 0.7em; }
     .overlay .result strong { color: #7CF; }
+    #new-record      { color: #FC3; font-weight: bold; }
     .overlay .hint   { color: #CCC; }
     .overlay button  { font: inherit; font-size: 0.7em; font-weight: bold; margin: 0.5em 0; padding: 0.3em 1em; cursor: pointer;
                        border: 2px solid white; border-radius: 6px; background-color: #36C; color: white; }
@@ -117,6 +118,8 @@
         <p class="result">Pontuação final: <strong id="final-score">0</strong></p>
         <p class="result">Linhas completadas: <strong id="final-rows">0</strong></p>
         <p class="result">Tempo: <strong id="final-time">00:00</strong></p>
+        <p class="result">Recorde: <strong id="best-score">0</strong></p>
+        <p class="result" id="new-record" style="visibility: hidden">Novo recorde!</p>
         <button type="button" id="replay-button">Jogar novamente</button>
         <button type="button" id="mode-button" class="secondary">Trocar modo</button>
         <p class="hint">Pressione Enter para jogar novamente</p>
@@ -680,6 +683,13 @@
       html('final-score', score);
       html('final-rows',  rows);
       html('final-time',  formatTime(Math.floor(elapsed)));
+      var recorde = parseInt(localStorage.getItem('tetris-recorde') || '0', 10);
+      if (score > recorde) {
+        recorde = score;
+        localStorage.setItem('tetris-recorde', recorde);
+        show('new-record');
+      }
+      html('best-score', recorde);
       showScreen('gameover-screen');
     }
     //------------------------------------------------
