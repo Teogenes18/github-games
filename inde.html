@@ -688,6 +688,8 @@
         recorde = score;
         localStorage.setItem('tetris-recorde', recorde);
         show('new-record');
+      } else {
+        hide('new-record');
       }
       html('best-score', recorde);
       showScreen('gameover-screen');
