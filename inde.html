@@ -1042,7 +1042,7 @@
     function drawTimer() {
       if (invalid.timer) {
         html('timer', formatTime(timerSeconds()));
-        get('timer').classList.toggle('alerta', timerSeconds() <= 10); // alerta nos últimos 10 segundos
+        get('timer').classList.toggle('alerta', mode == 'contra-tempo' && timerSeconds() <= 10); // alerta nos últimos 10 segundos
         invalid.timer = false;
       }
     }
