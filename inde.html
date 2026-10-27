@@ -76,10 +76,24 @@
       <div id="start-screen" class="overlay">
         <h1>TETRIS</h1>
         <ul class="controls"></ul>
+
         <p class="mode" id="mode-options">
-          <label><input type="radio" name="mode" id="mode-padrao" value="padrao" checked> Padrão</label>
-          <label><input type="radio" name="mode" id="mode-contra-tempo" value="contra-tempo"> Contra o tempo</label>
+          <label>
+            <input type="radio" name="mode" id="mode-padrao" value="padrao" checked>
+            Padrão
+          </label>
+
+          <label>
+            <input type="radio" name="mode" id="mode-contra-tempo" value="contra-tempo">
+            Contra o tempo
+          </label>
+
+          <label>
+            <input type="radio" name="mode" id="mode-desafio-linhas" value="desafio-linhas">
+            Desafio de linhas
+          </label>
         </p>
+
         <p class="mode">
           <label>Tempo limite
             <select id="time-limit" disabled>
@@ -90,6 +104,18 @@
             </select>
           </label>
         </p>
+
+        <p class="mode" style="font-size: 0.6em; margin: 0.3em 0;">
+          <label>Meta de linhas
+            <select id="line-target" disabled>
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="40">40</option>
+            </select>
+          </label>
+        </p>
+
         <button type="button" id="play-button">Jogar</button>
         <p class="hint">Pressione Enter para jogar</p>
       </div>
@@ -218,6 +244,8 @@
 
         var restartWasPlaying = false;
         var restartWasPaused = false;
+
+        var lineTarget = 20;
 
     //-------------------------------------------------------------------------
     // tetris pieces
@@ -675,18 +703,25 @@
       restartWasPaused = false;
     }
 
-    function lose(timeout) { // timeout: true quando o tempo do modo Contra o Tempo acabou
+    function lose(timeout, victory) {
       playing = false;
-      paused  = false;
+      paused = false;
       clearChallengeEffect();
       stopAmbient();
       playGameOverSound();
       setVisualScore();
-      html('gameover-title', timeout ? 'Tempo esgotado!' : 'Game Over');
+
+      html(
+        'gameover-title',
+        victory ? 'Você venceu!' : (timeout ? 'Tempo esgotado!' : 'Game Over')
+      );
+
       html('final-score', score);
-      html('final-rows',  rows);
-      html('final-time',  formatTime(Math.floor(elapsed)));
+      html('final-rows', rows);
+      html('final-time', formatTime(Math.floor(elapsed)));
+
       var recorde = parseInt(localStorage.getItem('tetris-recorde') || '0', 10);
+
       if (score > recorde) {
         recorde = score;
         localStorage.setItem('tetris-recorde', recorde);
@@ -694,6 +729,7 @@
       } else {
         hide('new-record');
       }
+
       html('best-score', recorde);
       showScreen('gameover-screen');
     }
@@ -733,13 +769,28 @@
       }
     }
 
-    function readMode() { // lê o modo e o tempo limite escolhidos na tela inicial
-      mode      = get('mode-contra-tempo').checked ? 'contra-tempo' : 'padrao';
+    function readMode() { // lê o modo e as configurações escolhidas na tela inicial
+      if (get('mode-contra-tempo').checked) {
+        mode = 'contra-tempo';
+      } else if (get('mode-desafio-linhas').checked) {
+        mode = 'desafio-linhas';
+      } else {
+        mode = 'padrao';
+      }
+
       timeLimit = parseInt(get('time-limit').value, 10);
+
+      lineTarget = parseInt(get('line-target').value, 10);
     }
 
-    function updateModeOptions() { get('time-limit').disabled = !get('mode-contra-tempo').checked; }
-    function changeMode()        { showScreen('start-screen'); }
+    function updateModeOptions() {
+      get('time-limit').disabled = !get('mode-contra-tempo').checked;
+      get('line-target').disabled = !get('mode-desafio-linhas').checked;
+    }
+
+    function changeMode() {
+      showScreen('start-screen');
+    }
 
     function clearTimer()     { elapsed = 0; invalidateTimer(); }
 
@@ -795,9 +846,26 @@
     function setScore(n)            { score = n; setVisualScore(n);  }
     function addScore(n)            { score = score + n;   }
     function clearScore()           { setScore(0); }
-    function clearRows()            { setRows(0); }
-    function setRows(n)             { rows = n; updateStep(); invalidateRows(); }
-    function addRows(n)             { setRows(rows + n); }
+    function clearRows() {
+      setRows(0);
+    }
+
+    function setRows(n) {
+      rows = n;
+      updateStep();
+      invalidateRows();
+    }
+
+    function addRows(n) {
+      if (mode === 'desafio-linhas' && rows + n > lineTarget) {
+        setRows(lineTarget);
+        lose(false, true);
+        return;
+      }
+
+      setRows(rows + n);
+    }
+
     function getBlock(x,y)          { return (blocks && blocks[x] ? blocks[x][y] : null); }
     function setBlock(x,y,type)     { blocks[x] = blocks[x] || []; blocks[x][y] = type; invalidate(); }
     function clearBlocks()          { blocks = []; invalidate(); }
