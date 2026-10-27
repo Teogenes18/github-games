@@ -11,7 +11,7 @@
     #menu     { display: inline-block; vertical-align: top; position: relative; }
     #menu p   { margin: 0.5em 0; text-align: center; }
     #menu p a { text-decoration: none; color: black; }
-    #audio-toggle { font: inherit; font-size: 0.65em; cursor: pointer; }
+    #audio-toggle, #sound-effects-toggle { max-width: 100%; font: inherit; font-size: 0.65em; white-space: normal; cursor: pointer; }
     #upcoming { display: block; margin: 0 auto; background-color: #E0E0E0; }
     #score    { color: blue; font-weight: bold; vertical-align: middle; }
     #rows     { color: blue; font-weight: bold; vertical-align: middle; }
@@ -67,6 +67,7 @@
       <p>rows <span id="rows">0</span></p>
       <p>tempo <span id="timer">00:00</span></p>
       <p><button type="button" id="audio-toggle" aria-pressed="true">Música: ligada</button></p>
+      <p><button type="button" id="sound-effects-toggle" aria-pressed="true">Efeitos sonoros: ligados</button></p>
     </div>
     <div id="court">
       <canvas id="canvas">
@@ -326,6 +327,7 @@
       showStats();    // initialize FPS counter
       showControls(); // fill the controls list on the start and pause screens
       updateAudioControl();
+      updateSoundEffectsControl();
       updateModeOptions(); // habilita o tempo limite só no modo Contra o Tempo
       addEvents();    // attach keydown, resize and button events
 
@@ -354,6 +356,7 @@
       document.addEventListener('keydown', keydown, false);
       window.addEventListener('resize', resize, false);
       get('audio-toggle').addEventListener('click', toggleAmbient, false);
+      get('sound-effects-toggle').addEventListener('click', toggleSoundEffects, false);
 
       get('play-button').addEventListener('click', play, false);
       get('replay-button').addEventListener('click', play, false);
@@ -531,6 +534,7 @@
         musicGain = null,
         ambientTimer = null,
         ambientEnabled = true,
+        soundEffectsEnabled = true,
         ambientNoteAt = 0,
         ambientNoteIndex = 0;
 
@@ -538,13 +542,15 @@
 
     function initializeAudio() {
       var AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      var button = get('audio-toggle');
 
       if (!AudioContextClass) {
-        button.disabled = true;
-        button.textContent = 'Áudio indisponível';
-        button.title = 'Este navegador não oferece suporte a áudio Web.';
-        button.setAttribute('aria-pressed', 'false');
+        ['audio-toggle', 'sound-effects-toggle'].forEach(function(id) {
+          var button = get(id);
+          button.disabled = true;
+          button.textContent = 'Áudio indisponível';
+          button.title = 'Este navegador não oferece suporte a áudio Web.';
+          button.setAttribute('aria-pressed', 'false');
+        });
         return false;
       }
 
@@ -582,14 +588,21 @@
     function updateAudioControl() {
       var button = get('audio-toggle');
       if (!(window.AudioContext || window.webkitAudioContext)) {
-        button.disabled = true;
-        button.textContent = 'Áudio indisponível';
-        button.title = 'Este navegador não oferece suporte a áudio Web.';
-        button.setAttribute('aria-pressed', 'false');
+        initializeAudio();
         return;
       }
       button.textContent = ambientEnabled ? 'Música: ligada' : 'Música: desligada';
       button.setAttribute('aria-pressed', ambientEnabled ? 'true' : 'false');
+    }
+
+    function updateSoundEffectsControl() {
+      var button = get('sound-effects-toggle');
+      if (!(window.AudioContext || window.webkitAudioContext)) {
+        initializeAudio();
+        return;
+      }
+      button.textContent = soundEffectsEnabled ? 'Efeitos sonoros: ligados' : 'Efeitos sonoros: desligados';
+      button.setAttribute('aria-pressed', soundEffectsEnabled ? 'true' : 'false');
     }
 
     function toggleAmbient() {
@@ -602,6 +615,14 @@
         startAmbient();
       else
         stopAmbient();
+    }
+
+    function toggleSoundEffects() {
+      if (!initializeAudio())
+        return;
+
+      soundEffectsEnabled = !soundEffectsEnabled;
+      updateSoundEffectsControl();
     }
 
     function scheduleAmbientNotes() {
@@ -643,14 +664,20 @@
     }
 
     function playMoveSound() {
+      if (!soundEffectsEnabled)
+        return;
       playTone(440, 0.055, 'square', 0.018);
     }
 
     function playLockSound() {
+      if (!soundEffectsEnabled)
+        return;
       playTone(150, 0.12, 'triangle', 0.07, undefined, undefined, 65);
     }
 
     function playLineSound(count) {
+      if (!soundEffectsEnabled)
+        return;
       var notes = [659.25, 783.99, 987.77, 1174.66];
       var now = audioContext ? audioContext.currentTime + 0.02 : undefined;
       for (var n = 0; n < Math.min(count, notes.length); n++)
@@ -658,6 +685,8 @@
     }
 
     function playGameOverSound() {
+      if (!soundEffectsEnabled)
+        return;
       var notes = [392, 329.63, 261.63];
       var now = audioContext ? audioContext.currentTime + 0.02 : undefined;
       for (var n = 0; n < notes.length; n++)
