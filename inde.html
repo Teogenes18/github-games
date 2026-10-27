@@ -857,7 +857,7 @@
     }
 
     function addRows(n) {
-      if (mode === 'desafio-linhas' && rows + n > lineTarget) {
+      if (mode === 'desafio-linhas' && rows + n >= lineTarget) {
         setRows(lineTarget);
         lose(false, true);
         return;
