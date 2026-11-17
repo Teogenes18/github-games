@@ -8,6 +8,23 @@ You can play the game at: https://githubschool.github.io/github-games/
 
 This fun open source game was cloned from: https://github.com/jakesgordon/javascript-tetris
 
+## Controles
+
+| Tecla | Ação |
+|---|---|
+| ← / A | mover para a esquerda |
+| → / D | mover para a direita |
+| ↑ / W | girar a peça |
+| ↓ / S | descer mais rápido |
+| Espaço | queda imediata |
+| P | pausar / continuar |
+| R | solicitar reinício (com confirmação) |
+| ESC | encerrar a partida |
+| G | ligar / desligar a sombra |
+| Enter | iniciar / jogar novamente |
+
+O jogo pausa automaticamente quando a janela ou aba perde o foco. Na tela de pausa, pressione P ou Enter para iniciar a contagem regressiva e continuar.
+
 ## Modos de jogo
 
 O modo é escolhido na tela inicial, antes de clicar em **Jogar** (ou apertar Enter). As opções de tempo limite e de meta de linhas só ficam ativas no modo correspondente.
