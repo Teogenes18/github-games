@@ -739,6 +739,7 @@
       stopAmbient();
       playGameOverSound();
       setVisualScore();
+      get('timer').classList.remove('alerta'); // a partida acabou: desliga o alerta dos últimos 10 segundos
 
       html(
         'gameover-title',
@@ -1140,7 +1141,7 @@
     function drawTimer() {
       if (invalid.timer) {
         html('timer', formatTime(timerSeconds()));
-        get('timer').classList.toggle('alerta', mode == 'contra-tempo' && timerSeconds() <= 10); // alerta nos últimos 10 segundos
+        get('timer').classList.toggle('alerta', mode == 'contra-tempo' && playing && timerSeconds() <= 10); // alerta nos últimos 10 segundos (só com a partida em andamento)
         invalid.timer = false;
       }
     }
