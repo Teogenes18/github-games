@@ -23,78 +23,22 @@ Acompanhamento opcional:
 
 ## 3. Exemplos de issues para este projeto
 
-### Bug
-Título: [BUG] Reiniciar partida não zera a pontuação
+Os exemplos abaixo correspondem a demandas registradas no fork, não a defeitos ou necessidades hipotéticas:
 
-Descrição:
-Ao reiniciar uma partida, o jogo deve voltar ao estado inicial com a pontuação zerada, sem lembrar o valor anterior.
+### Bug — [#31](https://github.com/Teogenes18/github-games/issues/31)
+O índice aleatório usa um limite superior exclusivo que impede a seleção do último item do saco de peças. A demanda pode ser verificada inspecionando `randomPiece()` e testando uma escolha próxima ao limite superior.
 
-Como reproduzir:
-1. Inicie uma partida.
-2. Marque alguns pontos.
-3. Use a opção de reinício.
-4. Observe a pontuação exibida.
+### Feature — [#13](https://github.com/Teogenes18/github-games/issues/13)
+A contagem regressiva 3-2-1 ao sair da pausa era uma funcionalidade nova. A issue foi implementada e encerrada pela [PR #16](https://github.com/Teogenes18/github-games/pull/16).
 
-Esperado:
-A pontuação volta para 00000.
+### Enhancement — [#14](https://github.com/Teogenes18/github-games/issues/14)
+A sombra já podia ser alternada com G, mas a escolha não era lembrada após recarregar e seu estado não era indicado no painel.
 
-Observado:
-A pontuação pode continuar a partir do valor anterior.
+### Documentation — [#15](https://github.com/Teogenes18/github-games/issues/15)
+A issue pede que o README documente os controles existentes e a pausa automática ao perder o foco.
 
-Critérios:
-- [ ] A pontuação reinicia em zero.
-- [ ] O estado do jogo volta ao início da partida.
-- [ ] O restante do jogo continua funcionando.
-
-### Feature
-Título: [FEATURE] Modo de desafio com limite de tempo
-
-Necessidade:
-O jogo ainda não oferece uma modalidade com pressão de tempo ao jogador.
-
-Proposta:
-Implementar um modo de jogo com cronômetro e incentivo ao desempenho.
-
-Fluxo do jogador:
-1. O usuário escolhe o modo "Contra o tempo".
-2. A partida inicia com limite configurado.
-3. O jogo encerra ao atingir o tempo máximo.
-
-Critérios:
-- [ ] O modo fica disponível na tela inicial.
-- [ ] O tempo é exibido e decrementado corretamente.
-- [ ] O jogo encerra ao atingir o limite.
-
-### Enhancement
-Título: [ENHANCEMENT] Melhorar feedback visual ao fim da partida
-
-Situação atual:
-Ao terminar uma partida, a tela de Game Over apresenta informações básicas, mas sem diferenciação clara de recordes e alertas.
-
-Melhoria proposta:
-Melhorar a legibilidade da tela final com destaque para pontuação, linhas e recorde.
-
-Benefício esperado:
-O jogador entende rapidamente o resultado e o que foi alcançado.
-
-Critérios:
-- [ ] A tela final permanece clara.
-- [ ] O recorde é destacado visualmente.
-- [ ] A interação de reinício continua funcionando.
-
-### Documentation
-Título: [DOCS] Atualizar README com instruções de execução e controles
-
-Conteúdo que falta ou está desatualizado:
-O README atual é curto e não detalha a execução do jogo em ambiente local nem os controles disponíveis.
-
-Seção/arquivo:
-README.md
-
-Critérios:
-- [ ] O README explica como executar o projeto localmente.
-- [ ] Os controles do jogo ficam documentados.
-- [ ] O conteúdo foi conferido contra a interface real.
+### Investigação de possível bug — [#12](https://github.com/Teogenes18/github-games/issues/12)
+Esta issue permanece explicitamente como investigação: o GitHub Pages não está publicado, então a falha no endereço principal ainda não foi reproduzida. Uma resposta 404 sem uma publicação ativa não confirma o defeito. Ative o Pages e repita os passos descritos na issue antes de alterar o jogo ou classificá-la como bug confirmado.
 
 ## 4. Fluxo recomendado de trabalho
 
@@ -112,32 +56,32 @@ Critérios:
 ```bash
 git switch main
 git pull origin main
-git switch -c fix/issue-12-reiniciar-pontuacao
+git switch -c fix/issue-31-piece-selection
 ```
 
 No PR:
 
 ```text
-Closes #12
+Closes #31
 
-Title: fix: reinicia pontuação ao confirmar reinício
+Title: fix: inclui o último item no sorteio de peças
 
 Alterações:
-- zera o estado da pontuação ao reiniciar a partida
-- preserva o restante do fluxo do jogo
+- sorteia um índice inteiro em todo o intervalo do saco
+- permite que o último item também seja escolhido
 
 Teste:
-- iniciar partida
-- marcar pontos
-- reiniciar
-- confirmar que a pontuação voltou para 00000
+- testar a seleção com um valor aleatório próximo ao limite superior
+- confirmar que o último tipo de peça pode ser sorteado
 ```
 
 ## 6. Checklist de entrega
 
-- [ ] Quatro issues criadas com categorias corretas.
+- [ ] Uma issue pertinente para cada categoria.
 - [ ] Labels e prioridades incluídas.
 - [ ] Assignees definidos.
-- [ ] Uma issue foi executada com branch e PR.
+- [ ] A prioridade foi justificada em comentário.
+- [ ] A issue escolhida foi implementada em branch própria e vinculada ao PR com `Closes #N`.
 - [ ] O código foi revisado por outro membro.
-- [ ] O merge foi realizado e a issue foi fechada.
+- [ ] Após aprovação, o merge foi realizado, a issue foi fechada e a alteração validada na `main`.
+- [ ] Links e evidências da entrega foram registrados.
