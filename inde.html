@@ -32,6 +32,8 @@
     .overlay .result { font-size: 0.7em; }
     .overlay .result strong { color: #7CF; }
     #new-record      { color: #FC3; font-weight: bold; }
+    #countdown-screen { background-color: rgba(0, 0, 0, 0.4); } /* mais transparente: o jogador vê o tabuleiro durante a contagem */
+    #countdown-number { font-size: 3em; margin: 0; }
     .overlay .hint   { color: #CCC; }
     .overlay button  { font: inherit; font-size: 0.7em; font-weight: bold; margin: 0.5em 0; padding: 0.3em 1em; cursor: pointer;
                        border: 2px solid white; border-radius: 6px; background-color: #36C; color: white; }
@@ -125,6 +127,11 @@
         <h2>Pausado</h2>
         <ul class="controls"></ul>
         <p class="hint">Pressione P ou Enter para continuar</p>
+      </div>
+
+      <div id="countdown-screen" class="overlay hidden">
+        <h1 id="countdown-number">3</h1>
+        <p class="hint">Prepare-se!</p>
       </div>
       <div id="restart-screen" class="overlay hidden">
         <h2>Reiniciar partida?</h2>
@@ -375,7 +382,7 @@
       
       get('mode-button').addEventListener('click', changeMode, false);
       get('mode-options').addEventListener('change', updateModeOptions, false); // o change dos radios sobe até o <p>
-      window.addEventListener('blur', function() { if (playing) pause(); }, false); // pausa sozinho quando a janela perde o foco
+      window.addEventListener('blur', function() { if (playing || countdownTimer) pause(); }, false); // pausa sozinho quando a janela perde o foco (também durante a contagem 3-2-1)
 
     }
 
@@ -484,6 +491,21 @@
             handled = true;
             break;
         }
+      } else if (countdownTimer) {
+        // Durante a contagem 3-2-1 nenhuma tecla move a peça.
+        // P volta para a pausa e ESC encerra a partida; as demais são ignoradas
+        // (assim Enter não inicia uma nova partida por engano).
+        switch (ev.keyCode) {
+          case KEY.P:
+            pause();
+            break;
+
+          case KEY.ESC:
+            cancelCountdown();
+            lose();
+            break;
+        }
+        handled = true;
       } else if (paused) {
         switch (ev.keyCode) {
           case KEY.P:
@@ -520,7 +542,7 @@
     // GAME LOGIC
     //-------------------------------------------------------------------------
 
-    var SCREENS = ['start-screen', 'pause-screen', 'restart-screen', 'gameover-screen'];
+    var SCREENS = ['start-screen', 'pause-screen', 'countdown-screen', 'restart-screen', 'gameover-screen'];
 
     function showScreen(id) { // show a single overlay screen over the court, or none when id is null
       SCREENS.forEach(function(screen) {
@@ -694,8 +716,36 @@
     }
 
     function play()   { readMode(); reset(); paused = false; playing = true; showScreen(null); startAmbient(); }
-    function pause()  { clearChallengeEffect(); stopAmbient(); showScreen('pause-screen'); paused = true;  playing = false; }
-    function resume() { showScreen(null);           paused = false; playing = true;  startAmbient(); }
+    function pause()  { cancelCountdown(); clearChallengeEffect(); stopAmbient(); showScreen('pause-screen'); paused = true;  playing = false; }
+    function resume() { paused = false; startCountdown(3); } // o jogo só volta depois da contagem 3-2-1
+
+    //------------------------------------------------
+    // CONTAGEM REGRESSIVA 3-2-1 AO SAIR DA PAUSA
+    //------------------------------------------------
+
+    var countdownTimer = null; // setTimeout da contagem em andamento (null quando não há contagem)
+
+    function startCountdown(n) {
+      html('countdown-number', n);
+      showScreen('countdown-screen');
+      countdownTimer = setTimeout(function() {
+        if (n > 1) {
+          startCountdown(n - 1);
+        } else {
+          countdownTimer = null;
+          showScreen(null);
+          playing = true; // só agora a partida continua
+          startAmbient();
+        }
+      }, 1000);
+    }
+
+    function cancelCountdown() {
+      if (countdownTimer) {
+        clearTimeout(countdownTimer);
+        countdownTimer = null;
+      }
+    }
 
     function requestRestart() {
       if (!playing && !paused) {
