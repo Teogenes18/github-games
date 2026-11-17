@@ -715,6 +715,13 @@
         playTone(notes[n], 0.28, 'triangle', 0.06, now === undefined ? undefined : now + n * 0.2);
     }
 
+    function playCountdownSound() {
+      if (!soundEffectsEnabled || !playing || paused)
+        return;
+
+      playTone(880, 0.12, 'sine', 0.06);
+    }
+
     function play()   { readMode(); reset(); paused = false; playing = true; showScreen(null); startAmbient(); }
     function pause()  { cancelCountdown(); clearChallengeEffect(); stopAmbient(); showScreen('pause-screen'); paused = true;  playing = false; }
     function resume() { paused = false; startCountdown(3); } // o jogo só volta depois da contagem 3-2-1
@@ -824,6 +831,7 @@
         challengeEffectUntil = 0,
         nextChallengeAt = 0;
 
+    var lastCountdownSecond = null;
     var CHALLENGE_EFFECT_DURATION = 2;
     var CHALLENGE_MIN_INTERVAL = 10;
     var CHALLENGE_MAX_INTERVAL = 20;
@@ -872,7 +880,11 @@
       showScreen('start-screen');
     }
 
-    function clearTimer()     { elapsed = 0; invalidateTimer(); }
+    function clearTimer() {
+      elapsed = 0;
+      lastCountdownSecond = null;
+      invalidateTimer();
+    }
 
     function updateTimer(idt) {
       setElapsed(elapsed + idt);
@@ -908,8 +920,21 @@
     function setElapsed(n) {
       var before = timerSeconds();
       elapsed = n;
-      if (timerSeconds() != before)
-        invalidateTimer(); // só atualiza o DOM quando o segundo exibido muda
+
+      var remaining = timerSeconds();
+
+      if (
+        mode === 'contra-tempo' &&
+        remaining > 0 &&
+        remaining <= 10 &&
+        remaining !== lastCountdownSecond
+      ) {
+        lastCountdownSecond = remaining;
+        playCountdownSound();
+      }
+
+      if (timerSeconds() !== before)
+        invalidateTimer();
     }
 
     function formatTime(seconds) { // mm:ss com zeros à esquerda
