@@ -68,6 +68,7 @@
       <p>score <span id="score">00000</span></p>
       <p>rows <span id="rows">0</span></p>
       <p>tempo <span id="timer">00:00</span></p>
+      <p id="ghost-status" aria-live="polite">Sombra: ligada (G)</p>
       <p><button type="button" id="audio-toggle" aria-pressed="true">Música: ligada</button></p>
       <p><button type="button" id="sound-effects-toggle" aria-pressed="true">Efeitos sonoros: ligados</button></p>
     </div>
@@ -335,6 +336,7 @@
       showControls(); // fill the controls list on the start and pause screens
       updateAudioControl();
       updateSoundEffectsControl();
+      updateGhostStatus();
       updateModeOptions(); // habilita o tempo limite só no modo Contra o Tempo
       addEvents();    // attach keydown, resize and button events
 
@@ -918,9 +920,18 @@
     }
 
     // fim: CRONÔMETRO / MODO CONTRA O TEMPO
-    var ghost = true; // true|false - show where the current piece will land (toggled with G)
+    var ghost = localStorage.getItem('tetris-ghost') !== 'false';
 
-    function toggleGhost() { ghost = !ghost; invalidate(); }
+    function updateGhostStatus() {
+      get('ghost-status').textContent = 'Sombra: ' + (ghost ? 'ligada' : 'desligada') + ' (G)';
+    }
+
+    function toggleGhost() {
+      ghost = !ghost;
+      localStorage.setItem('tetris-ghost', ghost ? 'true' : 'false');
+      updateGhostStatus();
+      invalidate();
+    }
 
     function setVisualScore(n)      { vscore = n || score; invalidateScore(); }
     function setScore(n)            { score = n; setVisualScore(n);  }
