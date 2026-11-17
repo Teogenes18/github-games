@@ -749,11 +749,11 @@
       html('final-rows', rows);
       html('final-time', formatTime(Math.floor(elapsed)));
 
-      var recorde = parseInt(localStorage.getItem('tetris-recorde') || '0', 10);
+      var recorde = parseInt(localStorage.getItem('tetris-recorde-' + mode) || '0', 10);
 
       if (score > recorde) {
         recorde = score;
-        localStorage.setItem('tetris-recorde', recorde);
+        localStorage.setItem('tetris-recorde-' + mode, recorde);
         show('new-record');
       } else {
         hide('new-record');
