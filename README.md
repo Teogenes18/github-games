@@ -32,3 +32,7 @@ O modo é escolhido na tela inicial, antes de clicar em **Jogar** (ou apertar En
 - O cronômetro conta o tempo jogado.
 - A velocidade aumenta conforme as linhas são completadas, como no modo Padrão.
 - A vitória acontece assim que o total de linhas completadas chega à meta.
+
+## Pontuação
+
+Cada peça fixada no tabuleiro adiciona 10 pontos. Quando uma jogada completa `n` linhas de uma vez, ela também adiciona um bônus de `100 × 2^(n - 1)` pontos: 1 linha vale 100 pontos, 2 valem 200, 3 valem 400 e 4 valem 800.
